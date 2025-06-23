@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8"><title>מערכת נכסלים - ניהול</title><link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+    <div id="app-container">
+        <div class="top-bar">
+            <div class="top-bar-header">
+                <h1 id="admin-welcome">דשבורד מנהל</h1>
+                <button class="button-modern logout-btn" data-action="logout">התנתקות</button>
+            </div>
+            <hr style="border-color: #e5e7eb; margin: 20px 0;">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="date-picker">תאריך לדוחות:</label>
+                    <input type="date" id="date-picker">
+                    <button class="button-modern btn-presence" data-action="fetch-reports" data-filter="נוכחות">הצג נוכחות</button>
+                    <button class="button-modern btn-shabbat" data-action="fetch-reports" data-filter="שבת">הצג סטטוס שבת</button>
+                    <button class="button-modern btn-emergency" data-action="fetch-reports" data-filter="חירום">הצג סטטוס חירום</button>
+                </div>
+            </div>
+            <hr style="border-color: #e5e7eb; margin: 20px 0;">
+            <div class="controls-row">
+                <form id="manual-update-form" class="control-group">
+                    <label>עדכון ידני:</label>
+                    <select id="user-select" required><option value="">בחר משתמש...</option></select>
+                    <input type="text" id="manual-status" placeholder="נתון ראשי" required>
+                    <input type="text" id="manual-status-secondary" placeholder="נתון משני (לחירום)">
+                    <select id="manual-update-type" required><option value="נוכחות">נוכחות</option><option value="שבת">שבת</option><option value="חירום">חירום</option></select>
+                    <button type="submit" class="button-modern btn-update" data-action="manual-update">עדכן</button>
+                </form>
+            </div>
+        </div>
+        <div class="content-table">
+            <h3 id="report-title" style="text-align:center; padding-bottom: 20px; color: #374151;"></h3>
+            <table id="report-table">
+                <thead></thead>
+                <tbody><tr><td colspan="3" style="text-align: center; padding: 40px;">בחר דוח להצגה.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script>
+        const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!loggedInUser || loggedInUser.role !== 'Admin') window.location.href = 'index.html';
+        document.getElementById('admin-welcome').textContent = 'שלום, ' + loggedInUser.name;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('date-picker').value = new Date().toISOString().split('T')[0];
+            populateUserList();
+        });
+
+        document.body.addEventListener('click', async (event) => {
+            const action = event.target.dataset.action;
+            if (!action) return;
+
+            switch(action) {
+                case 'fetch-reports':
+                    await fetchReports(event.target.dataset.filter);
+                    break;
+                case 'logout':
+                    logout();
+                    break;
+            }
+        });
+
+        document.getElementById('manual-update-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const data = { 
+                targetName: form.querySelector('#user-select').value, 
+                reportData: form.querySelector('#manual-status').value, 
+                emergencyStatus: form.querySelector('#manual-status-secondary').value,
+                updateType: form.querySelector('#manual-update-type').value, 
+                adminName: loggedInUser.name 
+            };
+            if (!data.targetName || !data.reportData) { alert('יש למלא שם ונתון ראשי.'); return; }
+
+            const button = form.querySelector('button[type="submit"]');
+            setLoading(button, true);
+            const response = await apiCall('adminUpdateUserStatus', data);
+            if (response.success) {
+                alert("העדכון בוצע!");
+                form.reset();
+                document.getElementById('user-select').value = "";
+            } else {
+                alert(`שגיאה: ${response.message}`);
+            }
+            setLoading(button, false);
+        });
+
+        async function fetchReports(filterType) {
+            const tableHead = document.querySelector('#report-table thead');
+            const tableBody = document.querySelector('#report-table tbody');
+            const reportTitle = document.getElementById('report-title');
+            const dateString = document.getElementById('date-picker').value;
+            
+            reportTitle.innerText = `טוען דוח ${filterType}...`;
+            tableBody.innerHTML = '<tr><td colspan="3">טוען...</td></tr>';
+            
+            const response = await apiCall('getReportsData', { filterType, dateString });
+            
+            if (response.success) {
+                tableBody.innerHTML = '';
+                reportTitle.innerText = `דוח ${filterType} לתאריך ${dateString}`;
+                tableHead.innerHTML = '<tr><th>שם</th><th>דיווח</th><th>זמן</th></tr>';
+                if (response.data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="3">לא נמצאו נתונים.</td></tr>';
+                    return;
+                }
+                response.data.forEach(r => { tableBody.innerHTML += `<tr><td>${r.name}</td><td>${r.reportData}</td><td>${r.timestamp}</td></tr>`; });
+            } else {
+                reportTitle.innerText = 'שגיאה';
+                tableBody.innerHTML = `<tr><td colspan="3">${response.message}</td></tr>`;
+            }
+        }
+        
+        async function populateUserList() {
+            const response = await apiCall('getAllUserNames');
+            if (response.success) {
+                const userSelect = document.getElementById('user-select');
+                response.data.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name; option.textContent = name;
+                    userSelect.appendChild(option);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
