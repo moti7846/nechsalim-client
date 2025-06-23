@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8"><title>מערכת נכסלים - עדכון</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>מערכת נכסלים - עדכון</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="layout-wrapper">
@@ -29,19 +31,19 @@
         const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
         if (!loggedInUser) window.location.href = 'index.html';
         document.getElementById('welcome-message').textContent = 'שלום, ' + loggedInUser.name;
-        
+
         document.body.addEventListener('click', async (event) => {
             const target = event.target;
             const action = target.dataset.action;
             if (!action) {
-                if(target.parentElement.dataset.panel) showPanel(target.parentElement.dataset.panel, target.parentElement);
-                else if(target.dataset.panel) showPanel(target.dataset.panel, target);
+                if (target.parentElement.dataset.panel) showPanel(target.parentElement.dataset.panel, target.parentElement);
+                else if (target.dataset.panel) showPanel(target.dataset.panel, target);
                 return;
             };
 
             setLoading(target, true);
             let data, messageDivId;
-            switch(action) {
+            switch (action) {
                 case 'submit-presence':
                     await sendReport({ updateType: 'נוכחות', reportData: target.dataset.status }, 'presenceMessage', target);
                     break;
@@ -73,7 +75,7 @@
                     logout();
                     break;
             }
-            if(action !== 'change-password') setLoading(target, false);
+            if (action !== 'change-password') setLoading(target, false);
         });
 
         function showPanel(panelId, clickedLink) {

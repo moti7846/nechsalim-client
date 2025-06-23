@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8"><title>מערכת נכסלים - ניהול</title><link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>מערכת נכסלים - ניהול</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="admin-body">
     <div id="app-container">
@@ -45,7 +47,7 @@
         const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
         if (!loggedInUser || loggedInUser.role !== 'Admin') window.location.href = 'index.html';
         document.getElementById('admin-welcome').textContent = 'שלום, ' + loggedInUser.name;
-        
+
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('date-picker').value = new Date().toISOString().split('T')[0];
             populateUserList();
@@ -55,7 +57,7 @@
             const action = event.target.dataset.action;
             if (!action) return;
 
-            switch(action) {
+            switch (action) {
                 case 'fetch-reports':
                     await fetchReports(event.target.dataset.filter);
                     break;
@@ -68,12 +70,12 @@
         document.getElementById('manual-update-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const form = event.target;
-            const data = { 
-                targetName: form.querySelector('#user-select').value, 
-                reportData: form.querySelector('#manual-status').value, 
+            const data = {
+                targetName: form.querySelector('#user-select').value,
+                reportData: form.querySelector('#manual-status').value,
                 emergencyStatus: form.querySelector('#manual-status-secondary').value,
-                updateType: form.querySelector('#manual-update-type').value, 
-                adminName: loggedInUser.name 
+                updateType: form.querySelector('#manual-update-type').value,
+                adminName: loggedInUser.name
             };
             if (!data.targetName || !data.reportData) { alert('יש למלא שם ונתון ראשי.'); return; }
 
@@ -95,12 +97,12 @@
             const tableBody = document.querySelector('#report-table tbody');
             const reportTitle = document.getElementById('report-title');
             const dateString = document.getElementById('date-picker').value;
-            
+
             reportTitle.innerText = `טוען דוח ${filterType}...`;
             tableBody.innerHTML = '<tr><td colspan="3">טוען...</td></tr>';
-            
+
             const response = await apiCall('getReportsData', { filterType, dateString });
-            
+
             if (response.success) {
                 tableBody.innerHTML = '';
                 reportTitle.innerText = `דוח ${filterType} לתאריך ${dateString}`;
@@ -115,7 +117,7 @@
                 tableBody.innerHTML = `<tr><td colspan="3">${response.message}</td></tr>`;
             }
         }
-        
+
         async function populateUserList() {
             const response = await apiCall('getAllUserNames');
             if (response.success) {

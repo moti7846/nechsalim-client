@@ -8,83 +8,29 @@
 <body>
     <div class="container">
         <h1>מערכת נכסלים</h1>
-        <div class="input-group">
-            <input type="email" id="emailInput" placeholder="אימייל" required>
-        </div>
-        <div class="input-group">
-            <input type="password" id="passwordInput" placeholder="סיסמה" required>
-        </div>
+        <div class="input-group"><input type="email" id="emailInput" placeholder="אימייל" required></div>
+        <div class="input-group"><input type="password" id="passwordInput" placeholder="סיסמה" required></div>
         <button class="button-modern btn-login" id="loginBtn">כניסה</button>
         <div id="message" class="message" style="display:none;"></div>
     </div>
-    
     <script src="script.js"></script>
     <script>
         document.getElementById('loginBtn').addEventListener('click', async () => {
-            console.log('🔵 Login button clicked!');
-            
             const button = document.getElementById('loginBtn');
-            const credentials = { 
-                email: document.getElementById('emailInput').value.trim(), 
-                password: document.getElementById('passwordInput').value 
-            };
-            
-            console.log('🔵 Credentials:', credentials);
-            
-            if (!credentials.email || !credentials.password) { 
-                console.log('🔴 Missing credentials');
-                showMessage('message', "יש למלא אימייל וסיסמה.", true); 
-                return; 
-            }
-            
-            console.log('🔵 Setting loading...');
+            const credentials = { email: document.getElementById('emailInput').value.trim(), password: document.getElementById('passwordInput').value };
+            if (!credentials.email || !credentials.password) { showMessage('message', "יש למלא אימייל וסיסמה.", true); return; }
             setLoading(button, true);
-            
-            try {
-                console.log('🔵 Starting API call...');
-                const response = await apiCall('verifyUser', credentials);
-                console.log('🔵 Full API Response:', JSON.stringify(response, null, 2));
-                console.log('🔵 Response type:', typeof response);
-                console.log('🔵 Response.success:', response.success);
-                console.log('🔵 Response.data:', response.data);
-                console.log('🔵 Data type:', typeof response.data);
-                console.log('🔵 Data length:', response.data?.length);
-                
-                if (response.success) {
-                    console.log('🟢 Response is successful');
-                    
-                    // השרת מחזיר response.user במקום response.data
-                    if (response.user) {
-                        console.log('🟢 User found in response.user:', response.user);
-                        const user = response.user;
-                        
-                        localStorage.setItem('loggedInUser', JSON.stringify(user));
-                        console.log('🔵 Saved to localStorage');
-                        
-                        const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
-                        console.log('🔵 Redirecting to:', page);
-                        
-                        window.location.href = page;
-                    } else {
-                        console.log('🔴 No user found in response');
-                        showMessage('message', 'לא נמצא משתמש בתגובה', true);
-                    }
-                } else {
-                    console.log('🔴 Response failed:', response.message);
-                    showMessage('message', response.message || 'שגיאה בהתחברות', true);
-                }
-            } catch (error) {
-                console.error('🔴 Login error:', error);
-                showMessage('message', 'שגיאה בהתחברות - נסה שוב', true);
-            } finally {
-                console.log('🔵 Removing loading...');
+            const response = await apiCall('verifyUser', credentials);
+            if (response.success) {
+                localStorage.setItem('loggedInUser', JSON.stringify(response.data.user));
+                const page = response.data.user.role === 'Admin' ? 'admin.html' : 'user.html';
+                window.location.href = page;
+            } else {
+                showMessage('message', response.message, true);
                 setLoading(button, false);
             }
         });
-
-        document.getElementById('passwordInput').addEventListener("keyup", event => { 
-            if (event.key === "Enter") document.getElementById('loginBtn').click(); 
-        });
+        document.getElementById('passwordInput').addEventListener("keyup", event => { if (event.key === "Enter") document.getElementById('loginBtn').click(); });
     </script>
 </body>
 </html>
