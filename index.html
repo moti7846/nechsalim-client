@@ -23,10 +23,10 @@
             const response = await apiCall('verifyUser', credentials);
             if (response.success) {
                 localStorage.setItem('loggedInUser', JSON.stringify(response.data.user));
-                //למחיקה בעתיד
-                const role = response.data.user.role;
-                const page = (role === 'Admin') ? 'admin.html' : 'user.html';
-                // const page = response.data.user.role === 'Admin' ? 'admin.html' : 'user.html';
+                // //למחיקה בעתיד
+                // const role = response.data.user.role;
+                // const page = (role === 'Admin') ? 'admin.html' : 'user.html';
+                const page = response.data.user.role === 'Admin' ? 'admin.html' : 'user.html';
                 window.location.href = page;
             } else {
                 showMessage('message', response.message, true);
