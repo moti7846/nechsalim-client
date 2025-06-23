@@ -53,45 +53,21 @@
                 if (response.success) {
                     console.log('🟢 Response is successful');
                     
-                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-                        console.log('🔵 Data is array with length:', response.data.length);
-                        console.log('🔵 All users:', response.data);
+                    // השרת מחזיר response.user במקום response.data
+                    if (response.user) {
+                        console.log('🟢 User found in response.user:', response.user);
+                        const user = response.user;
                         
-                        // מחפש את המשתמש במערך
-                        const user = response.data.find(u => {
-                            console.log('🔵 Checking user:', u, 'Email match:', u.email === credentials.email);
-                            return u.email === credentials.email;
-                        });
+                        localStorage.setItem('loggedInUser', JSON.stringify(user));
+                        console.log('🔵 Saved to localStorage');
                         
-                        if (user) {
-                            console.log('🟢 User found:', user);
-                            console.log('🔵 User role:', user.role);
-                            
-                            localStorage.setItem('loggedInUser', JSON.stringify(user));
-                            console.log('🔵 Saved to localStorage');
-                            
-                            const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
-                            console.log('🔵 Redirecting to:', page);
-                            
-                            window.location.href = page;
-                        } else {
-                            console.log('🔴 User not found in array');
-                            showMessage('message', 'משתמש לא נמצא במערך', true);
-                        }
+                        const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
+                        console.log('🔵 Redirecting to:', page);
+                        
+                        window.location.href = page;
                     } else {
-                        console.log('🔴 Data is not array or empty');
-                        console.log('🔵 Trying different structure...');
-                        
-                        // אולי המבנה שונה?
-                        if (response.data && response.data.user) {
-                            console.log('🔵 Found user in response.data.user');
-                            const user = response.data.user;
-                            localStorage.setItem('loggedInUser', JSON.stringify(user));
-                            const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
-                            window.location.href = page;
-                        } else {
-                            showMessage('message', 'מבנה תגובה לא מוכר', true);
-                        }
+                        console.log('🔴 No user found in response');
+                        showMessage('message', 'לא נמצא משתמש בתגובה', true);
                     }
                 } else {
                     console.log('🔴 Response failed:', response.message);
