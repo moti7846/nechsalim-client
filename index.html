@@ -21,43 +21,87 @@
     <script src="script.js"></script>
     <script>
         document.getElementById('loginBtn').addEventListener('click', async () => {
+            console.log('🔵 Login button clicked!');
+            
             const button = document.getElementById('loginBtn');
             const credentials = { 
                 email: document.getElementById('emailInput').value.trim(), 
                 password: document.getElementById('passwordInput').value 
             };
             
+            console.log('🔵 Credentials:', credentials);
+            
             if (!credentials.email || !credentials.password) { 
+                console.log('🔴 Missing credentials');
                 showMessage('message', "יש למלא אימייל וסיסמה.", true); 
                 return; 
             }
             
+            console.log('🔵 Setting loading...');
             setLoading(button, true);
             
             try {
+                console.log('🔵 Starting API call...');
                 const response = await apiCall('verifyUser', credentials);
-                console.log('API Response:', response); // לדיבוג
+                console.log('🔵 Full API Response:', JSON.stringify(response, null, 2));
+                console.log('🔵 Response type:', typeof response);
+                console.log('🔵 Response.success:', response.success);
+                console.log('🔵 Response.data:', response.data);
+                console.log('🔵 Data type:', typeof response.data);
+                console.log('🔵 Data length:', response.data?.length);
                 
-                if (response.success && response.data && response.data.length > 0) {
-                    // מחפש את המשתמש במערך
-                    const user = response.data.find(u => u.email === credentials.email);
+                if (response.success) {
+                    console.log('🟢 Response is successful');
                     
-                    if (user) {
-                        console.log('User found:', user);
-                        localStorage.setItem('loggedInUser', JSON.stringify(user));
+                    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+                        console.log('🔵 Data is array with length:', response.data.length);
+                        console.log('🔵 All users:', response.data);
                         
-                        const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
-                        window.location.href = page;
+                        // מחפש את המשתמש במערך
+                        const user = response.data.find(u => {
+                            console.log('🔵 Checking user:', u, 'Email match:', u.email === credentials.email);
+                            return u.email === credentials.email;
+                        });
+                        
+                        if (user) {
+                            console.log('🟢 User found:', user);
+                            console.log('🔵 User role:', user.role);
+                            
+                            localStorage.setItem('loggedInUser', JSON.stringify(user));
+                            console.log('🔵 Saved to localStorage');
+                            
+                            const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
+                            console.log('🔵 Redirecting to:', page);
+                            
+                            window.location.href = page;
+                        } else {
+                            console.log('🔴 User not found in array');
+                            showMessage('message', 'משתמש לא נמצא במערך', true);
+                        }
                     } else {
-                        showMessage('message', 'משתמש לא נמצא', true);
+                        console.log('🔴 Data is not array or empty');
+                        console.log('🔵 Trying different structure...');
+                        
+                        // אולי המבנה שונה?
+                        if (response.data && response.data.user) {
+                            console.log('🔵 Found user in response.data.user');
+                            const user = response.data.user;
+                            localStorage.setItem('loggedInUser', JSON.stringify(user));
+                            const page = user.role === 'Admin' ? 'admin.html' : 'user.html';
+                            window.location.href = page;
+                        } else {
+                            showMessage('message', 'מבנה תגובה לא מוכר', true);
+                        }
                     }
                 } else {
+                    console.log('🔴 Response failed:', response.message);
                     showMessage('message', response.message || 'שגיאה בהתחברות', true);
                 }
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('🔴 Login error:', error);
                 showMessage('message', 'שגיאה בהתחברות - נסה שוב', true);
             } finally {
+                console.log('🔵 Removing loading...');
                 setLoading(button, false);
             }
         });
