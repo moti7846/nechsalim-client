@@ -1,5 +1,5 @@
 // כתובת השרת שלך (localhost בזמן פיתוח או בשרת בענן לאחר העלאה)
-const SCRIPT_URL = "https://your-server.com/api"; // <-- שים כאן את כתובת השרת המתווך שלך
+const SCRIPT_URL = "https://nechsalim-proxy.onrender.com/api";
 
 
 // פונקציה כללית לקריאות לשרת המתווך
