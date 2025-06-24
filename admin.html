@@ -152,16 +152,16 @@
                 createCell(user.name);
 
                 if (currentFilter === 'חירום') {
-                    createCell(userDidNotReport ? 'לא התקבל דיווח' : user.location);
-                    createCell(userDidNotReport ? '' : user.status);
-                } else if (currentFilter === 'שבת') {
-                    createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
-                } else { // נוכחות
+                    const locationText = user.location || user.reportData;
+                    const statusText = user.status;
+                    
+                    createCell(userDidNotReport ? 'לא התקבל דיווח' : locationText);
+                    createCell(userDidNotReport ? '' : statusText);
+                } else {
                     createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
                 }
                 
                 createCell(user.timestamp);
-
                 tableBody.appendChild(tr);
             });
 
@@ -186,20 +186,21 @@
             const dataForSheet = currentReportData.map(user => {
                 const userDidNotReport = !user.timestamp;
                 if (currentFilter === 'חירום') {
+                    const locationText = user.location || user.reportData;
+                    const statusText = user.status;
                     return {
                         'שם': user.name,
-                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : (user.location || ''),
-                        'סטטוס': userDidNotReport ? '' : (user.status || ''),
+                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : locationText,
+                        'סטטוס': userDidNotReport ? '' : statusText,
                         'זמן עדכון': user.timestamp || ''
                     };
                 } else {
                      let mainColumnTitle = (currentFilter === 'שבת') ? 'מיקום' : 'סטטוס';
-                     const row = {
+                     return {
                         'שם': user.name,
                         [mainColumnTitle]: userDidNotReport ? 'לא התקבל דיווח' : user.reportData,
                         'זמן עדכון': user.timestamp || ''
                     };
-                    return row;
                 }
             });
 
