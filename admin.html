@@ -37,7 +37,7 @@
                         <option value="שבת">שבת</option>
                         <option value="חירום">חירום</option>
                     </select>
-                    <button type="submit" class="button-modern btn-update" data-action="manual-update">עדכן</button>
+                    <button type="submit" class="button-modern btn-update">עדכן</button>
                 </form>
             </div>
         </div>
@@ -52,42 +52,25 @@
 
     <script src="script.js"></script>
     <script>
-        // --- אתחול והגדרות ---
         const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
         if (!loggedInUser || loggedInUser.role !== 'Admin') {
             window.location.href = 'index.html';
         }
 
-        const reportColumnsByType = {
-            'נוכחות': { title: 'סטטוס', dataKey: 'reportData' },
-            'שבת':   { title: 'מיקום', dataKey: 'reportData' },
-            'חירום': { title: 'מיקום', dataKey: 'location' }
-        };
-
         let currentReportData = [];
         let currentFilter = '';
         let currentDate = '';
 
-        // --- אתחול הדף ---
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('admin-welcome').textContent = 'שלום, ' + loggedInUser.name;
             document.getElementById('date-picker').valueAsDate = new Date();
             populateUserList();
         });
 
-        // --- מאזיני אירועים ---
         document.body.addEventListener('click', async (event) => {
             const action = event.target.dataset.action;
-            if (!action) return;
-
-            switch (action) {
-                case 'fetch-reports':
-                    await fetchReports(event.target);
-                    break;
-                case 'logout':
-                    logout();
-                    break;
-            }
+            if (action === 'fetch-reports') await fetchReports(event.target);
+            if (action === 'logout') logout();
         });
 
         document.getElementById('manual-update-form').addEventListener('submit', async (event) => {
@@ -100,158 +83,85 @@
                 updateType: form.querySelector('#manual-update-type').value,
                 adminName: loggedInUser.name
             };
-
-            if (!data.targetName || !data.reportData) {
-                alert('יש למלא שם ונתון ראשי.');
-                return;
-            }
+            if (!data.targetName || !data.reportData) return alert('יש למלא שם ונתון ראשי.');
 
             const button = form.querySelector('button[type="submit"]');
             setLoading(button, true);
             const response = await apiCall('adminUpdateUserStatus', data);
-            
             alert(response.message);
             if (response.success) {
                 form.reset();
-                document.getElementById('user-select').value = "";
                 document.getElementById('manual-status-secondary').style.display = 'none';
             }
             setLoading(button, false);
         });
 
         document.getElementById('manual-update-type').addEventListener('change', (e) => {
-            const secondaryField = document.getElementById('manual-status-secondary');
-            secondaryField.style.display = (e.target.value === 'חירום') ? 'inline-block' : 'none';
+            document.getElementById('manual-status-secondary').style.display = (e.target.value === 'חירום') ? 'inline-block' : 'none';
         });
 
         document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
 
-
-        // --- פונקציות ליבה ---
         async function fetchReports(button) {
-            const filterType = button.dataset.filter;
-            const dateString = document.getElementById('date-picker').value;
+            currentFilter = button.dataset.filter;
+            currentDate = document.getElementById('date-picker').value;
 
             setLoading(button, true);
-            const tableBody = document.querySelector('#report-table tbody');
-            const reportTitle = document.getElementById('report-title');
-            reportTitle.innerText = `טוען דוח ${filterType}...`;
-            tableBody.innerHTML = '<tr><td colspan="4">טוען...</td></tr>';
+            document.getElementById('report-title').innerText = `טוען דוח ${currentFilter}...`;
+            document.querySelector('#report-table tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;">טוען...</td></tr>';
             
-            const response = await apiCall('getReportsData', { filterType, dateString });
+            const response = await apiCall('getReportsData', { filterType: currentFilter, dateString: currentDate });
             setLoading(button, false);
 
             if (response.success) {
                 currentReportData = response.data;
-                currentFilter = filterType;
-                currentDate = dateString;
                 displayReport();
             } else {
-                reportTitle.innerText = 'שגיאה בהעלאת הדוח';
-                tableBody.innerHTML = `<tr><td colspan="4">${response.message}</td></tr>`;
+                document.getElementById('report-title').innerText = 'שגיאה בהעלאת הדוח';
+                document.querySelector('#report-table tbody').innerHTML = `<tr><td colspan="4" style="text-align:center;">${response.message}</td></tr>`;
             }
         }
-
+        
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
             const tableBody = document.querySelector('#report-table tbody');
             const reportTitle = document.getElementById('report-title');
 
-            const mainColumn = reportColumnsByType[currentFilter];
-            let columns = ['שם', mainColumn.title, 'זמן עדכון'];
-            if (currentFilter === 'חירום') {
-                columns = ['שם', 'מיקום', 'סטטוס', 'זמן עדכון'];
-            }
+            let columns = ['שם', 'סטטוס', 'זמן עדכון'];
+            if (currentFilter === 'חירום') columns = ['שם', 'מיקום', 'סטטוס', 'זמן עדכון'];
+            if (currentFilter === 'שבת') columns = ['שם', 'מיקום', 'זמן עדכון'];
 
             tableHead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
-
             tableBody.innerHTML = ''; 
 
-            if (currentReportData.length === 0) {
+            currentReportData.forEach(user => {
                 const tr = document.createElement('tr');
-                const td = document.createElement('td');
-                td.colSpan = columns.length;
-                td.textContent = 'לא נמצאו נתונים';
-                td.style.textAlign = 'center';
-                tr.appendChild(td);
+                const userDidNotReport = !user.timestamp;
+                if (userDidNotReport) tr.classList.add('not-reported');
+
+                const createCell = (text) => {
+                    const td = document.createElement('td');
+                    td.textContent = text;
+                    tr.appendChild(td);
+                };
+
+                createCell(user.name);
+
+                if (currentFilter === 'חירום') {
+                    createCell(userDidNotReport ? 'לא התקבל דיווח' : (user.location || '(אין מיקום)'));
+                    createCell(userDidNotReport ? '' : (user.status || '(אין סטטוס)'));
+                } else {
+                    const reportText = userDidNotReport ? 'לא התקבל דיווח' : user.reportData;
+                    createCell(reportText);
+                }
+                
+                createCell(user.timestamp || '');
+
                 tableBody.appendChild(tr);
-            } else {
-                currentReportData.forEach(user => {
-                    const tr = document.createElement('tr');
-                    
-                    const userDidNotReport = !user.timestamp;
-                    if (userDidNotReport) {
-                        tr.classList.add('not-reported');
-                    }
-
-                    const nameTd = document.createElement('td');
-                    nameTd.textContent = user.name;
-                    tr.appendChild(nameTd);
-
-                    if (currentFilter === 'חירום') {
-                        const locationTd = document.createElement('td');
-                        const statusTd = document.createElement('td');
-                        
-                        if (userDidNotReport) {
-                            locationTd.textContent = 'לא התקבל דיווח';
-                            statusTd.textContent = '';
-                        } else {
-                            locationTd.textContent = user.location || '(אין מיקום)';
-                            statusTd.textContent = user.status || '(אין סטטוס)';
-                        }
-                        tr.appendChild(locationTd);
-                        tr.appendChild(statusTd);
-
-                    } else {
-                        const reportDataTd = document.createElement('td');
-                        reportDataTd.textContent = user.reportData || 'לא התקבל דיווח';
-                        tr.appendChild(reportDataTd);
-                    }
-
-                    const timestampTd = document.createElement('td');
-                    timestampTd.textContent = user.timestamp || '';
-                    tr.appendChild(timestampTd);
-                    
-                    tableBody.appendChild(tr);
-                });
-            }
+            });
 
             reportTitle.innerText = `דוח ${currentFilter} לתאריך ${new Date(currentDate).toLocaleDateString('he-IL')}`;
             document.getElementById('export-excel-btn').style.display = 'inline-block';
-        }
-
-        function exportToExcel() {
-            if (!currentReportData || currentReportData.length === 0) return;
-
-            const mainColumn = reportColumnsByType[currentFilter];
-            let columns = ['שם', mainColumn.title, 'זמן עדכון'];
-            if (currentFilter === 'חירום') {
-                columns = ['שם', 'מיקום', 'סטטוס', 'זמן עדכון'];
-            }
-
-            const dataForSheet = currentReportData.map(user => {
-                const userDidNotReport = !user.timestamp;
-                if (currentFilter === 'חירום') {
-                    return {
-                        'שם': user.name,
-                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : user.location,
-                        'סטטוס': userDidNotReport ? '' : user.status,
-                        'זמן עדכון': user.timestamp || ''
-                    };
-                } else {
-                    const row = {
-                        'שם': user.name,
-                        'זמן עדכון': user.timestamp || ''
-                    };
-                    row[mainColumn.title] = user.reportData || 'לא התקבל דיווח';
-                    return row;
-                }
-            });
-
-            const ws = XLSX.utils.json_to_sheet(dataForSheet, {header: columns});
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Report");
-            XLSX.writeFile(wb, `דוח_${currentFilter}_${currentDate}.xlsx`);
         }
 
         async function populateUserList() {
@@ -259,12 +169,39 @@
             if (response.success) {
                 const userSelect = document.getElementById('user-select');
                 response.data.forEach(name => {
-                    const option = document.createElement('option');
-                    option.value = name;
-                    option.textContent = name;
-                    userSelect.appendChild(option);
+                    const option = new Option(name, name);
+                    userSelect.add(option);
                 });
             }
+        }
+        
+        function exportToExcel() {
+            if (!currentReportData || currentReportData.length === 0) return;
+
+            const dataForSheet = currentReportData.map(user => {
+                 const userDidNotReport = !user.timestamp;
+                if (currentFilter === 'חירום') {
+                    return {
+                        'שם': user.name,
+                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : (user.location || '(אין מיקום)'),
+                        'סטטוס': userDidNotReport ? '' : (user.status || '(אין סטטוס)'),
+                        'זמן עדכון': user.timestamp || ''
+                    };
+                } else {
+                     let mainColumnTitle = (currentFilter === 'שבת') ? 'מיקום' : 'סטטוס';
+                     const row = {
+                        'שם': user.name,
+                        [mainColumnTitle]: userDidNotReport ? 'לא התקבל דיווח' : user.reportData,
+                        'זמן עדכון': user.timestamp || ''
+                    };
+                    return row;
+                }
+            });
+
+            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Report");
+            XLSX.writeFile(wb, `דוח_${currentFilter}_${currentDate}.xlsx`);
         }
     </script>
 </body>
