@@ -9,6 +9,7 @@
 </head>
 <body class="admin-body">
     <div id="app-container">
+        <!-- החלק העליון של הטפסים נשאר זהה -->
         <div class="top-bar">
             <div class="top-bar-header">
                 <h1 id="admin-welcome">דשבורד מנהל</h1>
@@ -122,6 +123,9 @@
             }
         }
         
+        // =================================================================
+        //  גרסה סופית ו"חסינת-טעויות" של פונקציית התצוגה
+        // =================================================================
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
             const tableBody = document.querySelector('#report-table tbody');
@@ -141,27 +145,44 @@
             currentReportData.forEach(user => {
                 const tr = document.createElement('tr');
                 const userDidNotReport = !user.timestamp;
-                if (userDidNotReport) tr.classList.add('not-reported');
+                if (userDidNotReport) {
+                    tr.classList.add('not-reported');
+                }
 
                 const createCell = (text) => {
                     const td = document.createElement('td');
-                    td.textContent = text ?? '';
+                    // בדיקה מפורשת כדי למנוע הצגה של 'null' או 'undefined'
+                    if (text === null || typeof text === 'undefined') {
+                        td.textContent = '';
+                    } else {
+                        td.textContent = text;
+                    }
                     tr.appendChild(td);
                 };
 
+                // הרכבת השורה - תא אחר תא
                 createCell(user.name);
 
                 if (currentFilter === 'חירום') {
-                    const locationText = user.location || user.reportData;
-                    const statusText = user.status;
+                    let locationText = '';
+                    let statusText = '';
                     
-                    createCell(userDidNotReport ? 'לא התקבל דיווח' : locationText);
-                    createCell(userDidNotReport ? '' : statusText);
+                    if (userDidNotReport) {
+                        locationText = 'לא התקבל דיווח';
+                    } else {
+                        // בדיקה מפורשת: אם השרת פירק את המידע, נשתמש בו. אם לא, נשתמש במידע הגולמי.
+                        locationText = user.location || user.reportData;
+                        statusText = user.status;
+                    }
+                    createCell(locationText);
+                    createCell(statusText);
                 } else {
+                    // לוגיקה פשוטה לדוחות רגילים
                     createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
                 }
                 
                 createCell(user.timestamp);
+
                 tableBody.appendChild(tr);
             });
 
@@ -176,13 +197,12 @@
                 response.data.forEach(name => {
                     const option = new Option(name, name);
                     userSelect.add(option);
-                });
+});
             }
         }
         
         function exportToExcel() {
             if (!currentReportData || currentReportData.length === 0) return;
-
             const dataForSheet = currentReportData.map(user => {
                 const userDidNotReport = !user.timestamp;
                 if (currentFilter === 'חירום') {
@@ -203,7 +223,6 @@
                     };
                 }
             });
-
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(dataForSheet);
             XLSX.utils.book_append_sheet(wb, ws, "Report");
