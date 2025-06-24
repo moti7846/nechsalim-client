@@ -125,13 +125,17 @@
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
             const tableBody = document.querySelector('#report-table tbody');
-            const reportTitle = document.getElementById('report-title');
 
-            let columns = ['שם', 'סטטוס', 'זמן עדכון'];
-            if (currentFilter === 'חירום') columns = ['שם', 'מיקום', 'סטטוס', 'זמן עדכון'];
-            if (currentFilter === 'שבת') columns = ['שם', 'מיקום', 'זמן עדכון'];
-
+            let columns;
+            if (currentFilter === 'חירום') {
+                columns = ['שם', 'מיקום', 'סטטוס', 'זמן עדכון'];
+            } else if (currentFilter === 'שבת') {
+                columns = ['שם', 'מיקום', 'זמן עדכון'];
+            } else { // נוכחות
+                columns = ['שם', 'סטטוס', 'זמן עדכון'];
+            }
             tableHead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+            
             tableBody.innerHTML = ''; 
 
             currentReportData.forEach(user => {
@@ -141,26 +145,27 @@
 
                 const createCell = (text) => {
                     const td = document.createElement('td');
-                    td.textContent = text;
+                    td.textContent = text ?? '';
                     tr.appendChild(td);
                 };
 
                 createCell(user.name);
 
                 if (currentFilter === 'חירום') {
-                    createCell(userDidNotReport ? 'לא התקבל דיווח' : (user.location || '(אין מיקום)'));
-                    createCell(userDidNotReport ? '' : (user.status || '(אין סטטוס)'));
-                } else {
-                    const reportText = userDidNotReport ? 'לא התקבל דיווח' : user.reportData;
-                    createCell(reportText);
+                    createCell(userDidNotReport ? 'לא התקבל דיווח' : user.location);
+                    createCell(userDidNotReport ? '' : user.status);
+                } else if (currentFilter === 'שבת') {
+                    createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
+                } else { // נוכחות
+                    createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
                 }
                 
-                createCell(user.timestamp || '');
+                createCell(user.timestamp);
 
                 tableBody.appendChild(tr);
             });
 
-            reportTitle.innerText = `דוח ${currentFilter} לתאריך ${new Date(currentDate).toLocaleDateString('he-IL')}`;
+            document.getElementById('report-title').innerText = `דוח ${currentFilter} לתאריך ${new Date(currentDate).toLocaleDateString('he-IL')}`;
             document.getElementById('export-excel-btn').style.display = 'inline-block';
         }
 
@@ -179,12 +184,12 @@
             if (!currentReportData || currentReportData.length === 0) return;
 
             const dataForSheet = currentReportData.map(user => {
-                 const userDidNotReport = !user.timestamp;
+                const userDidNotReport = !user.timestamp;
                 if (currentFilter === 'חירום') {
                     return {
                         'שם': user.name,
-                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : (user.location || '(אין מיקום)'),
-                        'סטטוס': userDidNotReport ? '' : (user.status || '(אין סטטוס)'),
+                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : (user.location || ''),
+                        'סטטוס': userDidNotReport ? '' : (user.status || ''),
                         'זמן עדכון': user.timestamp || ''
                     };
                 } else {
@@ -198,8 +203,8 @@
                 }
             });
 
-            const ws = XLSX.utils.json_to_sheet(dataForSheet);
             const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(dataForSheet);
             XLSX.utils.book_append_sheet(wb, ws, "Report");
             XLSX.writeFile(wb, `דוח_${currentFilter}_${currentDate}.xlsx`);
         }
