@@ -22,9 +22,11 @@
             setLoading(button, true);
             const response = await apiCall('verifyUser', credentials);
             if (response.success) {
-                localStorage.setItem('loggedInUser', JSON.stringify(response.data.user));
-                const page = response.data.user.role === 'Admin' ? 'admin.html' : 'user.html';
+                localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+                const page = response.user.role === 'Admin' ? 'admin.html' : 'user.html';
                 window.location.href = page;
+            }
+
             } else {
                 showMessage('message', response.message, true);
                 setLoading(button, false);
