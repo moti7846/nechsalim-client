@@ -2,8 +2,9 @@
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>מערכת נכסלים - עדכון</title>
+    <title>מערכת נכסלים - עדכון סטטוס</title>
     <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
     <div class="layout-wrapper">
@@ -20,52 +21,148 @@
             <div class="sidebar-footer"><a class="button-modern" data-action="logout">התנתקות</a></div>
         </aside>
         <main class="main-content">
-            <div id="presence-panel" class="content-panel active"><div class="card"><h4>דיווח נוכחות (זום)</h4><button class="button-modern btn-presence" data-action="submit-presence" data-status="מחובר">אני מחובר</button><div class="input-group" style="margin-top: 20px;"><input type="text" id="presenceCustomInput" placeholder="או: דיווח נוכחות אחר"></div><button class="button-modern btn-presence" data-action="submit-presence-custom">שלח דיווח אחר</button><div id="presenceMessage" class="message" style="display:none;"></div></div></div>
-            <div id="shabbat-panel" class="content-panel"><div class="card"><h4>דיווח סטטוס שבת</h4><div class="input-group"><input type="text" id="shabbatStatusInput" placeholder="היכן אתה בשבת?"></div><button class="button-modern btn-shabbat" data-action="submit-shabbat">עדכן</button><div id="shabbatMessage" class="message" style="display:none;"></div></div></div>
-            <div id="emergency-panel" class="content-panel"><div class="card"><h4>דיווח חירום</h4><div class="input-group"><input type="text" id="emergencyLocationInput" placeholder="מיקום נוכחי"></div><div class="input-group"><input type="text" id="emergencyStatusInput" placeholder="סטטוס אישי"></div><button class="button-modern btn-emergency" data-action="submit-emergency">שלח</button><div id="emergencyMessage" class="message" style="display:none;"></div></div></div>
-            <div id="password-panel" class="content-panel"><div class="card"><h4>שינוי סיסמה</h4><div class="input-group"><input type="password" id="newPasswordInput" placeholder="סיסמה חדשה"></div><button class="button-modern btn-password" data-action="change-password">שנה</button><div id="passwordMessage" class="message" style="display:none;"></div></div></div>
+            <!-- פאנל דיווח נוכחות -->
+            <div id="presence-panel" class="content-panel active">
+                <div class="card">
+                    <h4>דיווח נוכחות (זום)</h4>
+                    <button class="button-modern btn-presence" data-action="submit-presence" data-status="מחובר">אני מחובר</button>
+                    <div class="input-group" style="margin-top: 20px;">
+                        <input type="text" id="presenceCustomInput" placeholder="או: דיווח נוכחות אחר">
+                    </div>
+                    <button class="button-modern btn-presence" data-action="submit-presence-custom">שלח דיווח אחר</button>
+                    <div id="presenceMessage" class="message" style="display:none;"></div>
+                </div>
+            </div>
+            
+            <!-- פאנל דיווח שבת -->
+            <div id="shabbat-panel" class="content-panel">
+                <div class="card">
+                    <h4>דיווח סטטוס שבת</h4>
+                    <div class="input-group">
+                        <input type="text" id="shabbatStatusInput" placeholder="היכן אתה בשבת?">
+                    </div>
+                    <button class="button-modern btn-shabbat" data-action="submit-shabbat">עדכן</button>
+                    <div id="shabbatMessage" class="message" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- פאנל דיווח חירום (עם השיפורים) -->
+            <div id="emergency-panel" class="content-panel">
+                <div class="card">
+                    <h4>דיווח חירום</h4>
+                    <div class="input-group">
+                        <input type="text" id="emergencyLocationInput" placeholder="מיקום נוכחי">
+                    </div>
+                    <div class="input-group">
+                        <label for="emergencyStatusSelect">סטטוס אישי:</label>
+                        <select id="emergencyStatusSelect">
+                            <option value="ברוך השם הכל בסדר">ברוך השם הכל בסדר</option>
+                            <option value="other">אחר (נא לפרט)</option>
+                        </select>
+                    </div>
+                    <div class="input-group" id="emergencyCustomStatusContainer" style="display: none;">
+                        <input type="text" id="emergencyCustomStatusInput" placeholder="פרט את הסטטוס">
+                    </div>
+                    <button class="button-modern btn-emergency" data-action="submit-emergency">שלח</button>
+                    <div id="emergencyMessage" class="message" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- פאנל שינוי סיסמה -->
+            <div id="password-panel" class="content-panel">
+                <div class="card">
+                    <h4>שינוי סיסמה</h4>
+                    <div class="input-group">
+                        <input type="password" id="newPasswordInput" placeholder="סיסמה חדשה">
+                    </div>
+                    <button class="button-modern btn-password" data-action="change-password">שנה</button>
+                    <div id="passwordMessage" class="message" style="display:none;"></div>
+                </div>
+            </div>
         </main>
     </div>
-    <script src="script.js"></script>
-    <script>
-        const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
-        if (!loggedInUser) window.location.href = 'index.html';
-        document.getElementById('welcome-message').textContent = 'שלום, ' + loggedInUser.name;
 
+    <!-- טעינת סקריפטים -->
+    <script src="script.js"></script>
+
+    <script>
+        // --- אתחול והגדרות ראשוניות ---
+        const loggedInUser = JSON.parse(localStorage.getItem('loggedInUser'));
+        if (!loggedInUser) {
+            window.location.href = 'index.html';
+        } else {
+            document.getElementById('welcome-message').textContent = 'שלום, ' + loggedInUser.name;
+        }
+
+        // --- מאזיני אירועים ---
+        
+        // מאזין אירועים מרכזי לכל הכפתורים והקישורים
         document.body.addEventListener('click', async (event) => {
             const target = event.target;
             const action = target.dataset.action;
+            
+            // טיפול בניווט בתפריט הצד
             if (!action) {
                 if (target.parentElement.dataset.panel) showPanel(target.parentElement.dataset.panel, target.parentElement);
                 else if (target.dataset.panel) showPanel(target.dataset.panel, target);
                 return;
-            };
+            }
 
             setLoading(target, true);
-            let data, messageDivId;
+            
+            // ניתוב פעולות
             switch (action) {
                 case 'submit-presence':
-                    await sendReport({ updateType: 'נוכחות', reportData: target.dataset.status }, 'presenceMessage', target);
+                    await sendReport({ updateType: 'נוכחות', reportData: target.dataset.status }, 'presenceMessage');
                     break;
                 case 'submit-presence-custom':
                     const customStatus = document.getElementById('presenceCustomInput').value.trim();
-                    if (!customStatus) { alert("אנא כתוב דיווח."); setLoading(target, false); return; }
-                    await sendReport({ updateType: 'נוכחות', reportData: customStatus }, 'presenceMessage', target);
+                    if (!customStatus) { 
+                        alert("אנא כתוב דיווח."); 
+                        setLoading(target, false); 
+                        return; 
+                    }
+                    await sendReport({ updateType: 'נוכחות', reportData: customStatus }, 'presenceMessage');
+                    document.getElementById('presenceCustomInput').value = ''; // ניקוי השדה
                     break;
                 case 'submit-shabbat':
                     const shabbatStatus = document.getElementById('shabbatStatusInput').value.trim();
-                    if (!shabbatStatus) { alert("אנא מלא את סטטוס השבת."); setLoading(target, false); return; }
-                    await sendReport({ updateType: 'שבת', reportData: shabbatStatus }, 'shabbatMessage', target);
+                    if (!shabbatStatus) { 
+                        alert("אנא מלא את סטטוס השבת."); 
+                        setLoading(target, false); 
+                        return; 
+                    }
+                    await sendReport({ updateType: 'שבת', reportData: shabbatStatus }, 'shabbatMessage');
                     break;
                 case 'submit-emergency':
                     const location = document.getElementById('emergencyLocationInput').value.trim();
-                    const status = document.getElementById('emergencyStatusInput').value.trim();
-                    if (!location || !status) { alert("אנא מלא את שני השדות."); setLoading(target, false); return; }
-                    await sendReport({ updateType: 'חירום', reportData: location, emergencyStatus: status }, 'emergencyMessage', target);
+                    if (!location) { 
+                        alert("אנא מלא את מיקומך הנוכחי."); 
+                        setLoading(target, false); 
+                        return; 
+                    }
+
+                    // לוגיקה חדשה לאיסוף הסטטוס מדיווח החירום
+                    const emergencyStatusSelect = document.getElementById('emergencyStatusSelect');
+                    let status = emergencyStatusSelect.value;
+                    if (status === 'other') {
+                        status = document.getElementById('emergencyCustomStatusInput').value.trim();
+                        if (!status) {
+                            alert("בחרת 'אחר', נא פרט את הסטטוס.");
+                            setLoading(target, false);
+                            return;
+                        }
+                    }
+
+                    await sendReport({ updateType: 'חירום', reportData: location, emergencyStatus: status }, 'emergencyMessage');
                     break;
                 case 'change-password':
                     const newPassword = document.getElementById('newPasswordInput').value;
-                    if (!newPassword || newPassword.length < 4) { showMessage('passwordMessage', "הסיסמה חייבת להכיל לפחות 4 תווים.", true); setLoading(target, false); return; }
+                    if (!newPassword || newPassword.length < 4) { 
+                        showMessage('passwordMessage', "הסיסמה חייבת להכיל לפחות 4 תווים.", true); 
+                        setLoading(target, false); 
+                        return; 
+                    }
                     const response = await apiCall('changeUserPassword', { userEmail: loggedInUser.email, newPassword });
                     const msg = response.success ? `${loggedInUser.name}, ${response.message}` : response.message;
                     showMessage('passwordMessage', msg, !response.success);
@@ -75,8 +172,24 @@
                     logout();
                     break;
             }
-            if (action !== 'change-password') setLoading(target, false);
+            // הסרת מצב טעינה עבור רוב הכפתורים
+            if (action !== 'change-password' && action !== 'logout') {
+                 setLoading(target, false);
+            }
         });
+
+        // מאזין אירועים לתיבה הנפתחת של סטטוס החירום
+        document.getElementById('emergencyStatusSelect').addEventListener('change', (event) => {
+            const customContainer = document.getElementById('emergencyCustomStatusContainer');
+            if (event.target.value === 'other') {
+                customContainer.style.display = 'block';
+                document.getElementById('emergencyCustomStatusInput').focus();
+            } else {
+                customContainer.style.display = 'none';
+            }
+        });
+
+        // --- פונקציות עזר ---
 
         function showPanel(panelId, clickedLink) {
             document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
@@ -85,7 +198,7 @@
             clickedLink.classList.add('active');
         }
 
-        async function sendReport(data, messageDivId, buttonElement) {
+        async function sendReport(data, messageDivId) {
             data.userEmail = loggedInUser.email;
             data.userName = loggedInUser.name;
             showMessage(messageDivId, "שולח דיווח...", false);
