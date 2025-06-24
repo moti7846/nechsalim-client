@@ -330,3 +330,10 @@ hr {
         font-weight: 600;
         color: #4b5563;
     }
+.report-table tbody tr.not-reported {
+    background-color: #fee2e2; /* רקע אדמדם בהיר */
+    color: #991b1b; /* טקסט אדום כהה */
+}
+
+.report-table tbody tr.not-reported:hover {
+    background-color: #fecaca;
