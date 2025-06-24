@@ -43,7 +43,7 @@
         </div>
         <div class="content-table">
             <h3 id="report-title" style="text-align:center; padding-bottom: 20px; color: #374151;"></h3>
-            <table id="report-table">
+            <table id="report-table" class="report-table">
                 <thead></thead>
                 <tbody><tr><td colspan="4" style="text-align: center; padding: 40px;">בחר דוח להצגה.</td></tr></tbody>
             </table>
@@ -59,9 +59,9 @@
         }
 
         const reportColumnsByType = {
-            'נוכחות': { title: 'סטטוס', dataKey: 'reportData', default: 'לא התקבל דיווח' },
-            'שבת':   { title: 'מיקום', dataKey: 'reportData', default: 'לא התקבל דיווח' },
-            'חירום': { title: 'מיקום', dataKey: 'location', default: 'לא התקבל דיווח' }
+            'נוכחות': { title: 'סטטוס', dataKey: 'reportData' },
+            'שבת':   { title: 'מיקום', dataKey: 'reportData' },
+            'חירום': { title: 'מיקום', dataKey: 'location' }
         };
 
         let currentReportData = [];
@@ -132,14 +132,12 @@
             const filterType = button.dataset.filter;
             const dateString = document.getElementById('date-picker').value;
 
-            // עדכון ממשק משתמש
             setLoading(button, true);
             const tableBody = document.querySelector('#report-table tbody');
             const reportTitle = document.getElementById('report-title');
             reportTitle.innerText = `טוען דוח ${filterType}...`;
             tableBody.innerHTML = '<tr><td colspan="4">טוען...</td></tr>';
             
-            // **קריאת API אחת ויחידה!**
             const response = await apiCall('getReportsData', { filterType, dateString });
             setLoading(button, false);
 
@@ -154,13 +152,11 @@
             }
         }
 
-        // החלף את הפונקציה displayReport הקיימת בזו:
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
             const tableBody = document.querySelector('#report-table tbody');
             const reportTitle = document.getElementById('report-title');
 
-            // קביעת הכותרות של הטבלה
             const mainColumn = reportColumnsByType[currentFilter];
             let columns = ['שם', mainColumn.title, 'זמן עדכון'];
             if (currentFilter === 'חירום') {
@@ -169,8 +165,7 @@
 
             tableHead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
 
-            // *** החלק החשוב: בניית השורות בצורה בטוחה ***
-            tableBody.innerHTML = ''; // ניקוי הטבלה לפני הוספת שורות חדשות
+            tableBody.innerHTML = ''; 
 
             if (currentReportData.length === 0) {
                 const tr = document.createElement('tr');
@@ -182,21 +177,31 @@
                 tableBody.appendChild(tr);
             } else {
                 currentReportData.forEach(user => {
-                    const tr = document.createElement('tr'); // יצירת שורת טבלה חדשה
+                    const tr = document.createElement('tr');
+                    
+                    const userDidNotReport = !user.timestamp;
+                    if (userDidNotReport) {
+                        tr.classList.add('not-reported');
+                    }
 
-                    // יצירת תאים והוספת תוכן באמצעות textContent הבטוח
                     const nameTd = document.createElement('td');
                     nameTd.textContent = user.name;
                     tr.appendChild(nameTd);
 
                     if (currentFilter === 'חירום') {
                         const locationTd = document.createElement('td');
-                        locationTd.textContent = user.location || 'לא התקבל דיווח';
-                        tr.appendChild(locationTd);
-
                         const statusTd = document.createElement('td');
-                        statusTd.textContent = user.status || 'לא התקבל דיווח';
+                        
+                        if (userDidNotReport) {
+                            locationTd.textContent = 'לא התקבל דיווח';
+                            statusTd.textContent = '';
+                        } else {
+                            locationTd.textContent = user.location || '(אין מיקום)';
+                            statusTd.textContent = user.status || '(אין סטטוס)';
+                        }
+                        tr.appendChild(locationTd);
                         tr.appendChild(statusTd);
+
                     } else {
                         const reportDataTd = document.createElement('td');
                         reportDataTd.textContent = user.reportData || 'לא התקבל דיווח';
@@ -207,7 +212,7 @@
                     timestampTd.textContent = user.timestamp || '';
                     tr.appendChild(timestampTd);
                     
-                    tableBody.appendChild(tr); // הוספת השורה הבטוחה לטבלה
+                    tableBody.appendChild(tr);
                 });
             }
 
@@ -225,16 +230,25 @@
             }
 
             const dataForSheet = currentReportData.map(user => {
+                const userDidNotReport = !user.timestamp;
                 if (currentFilter === 'חירום') {
-                    return { 'שם': user.name, 'מיקום': user.location, 'סטטוס': user.status, 'זמן עדכון': user.timestamp };
+                    return {
+                        'שם': user.name,
+                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : user.location,
+                        'סטטוס': userDidNotReport ? '' : user.status,
+                        'זמן עדכון': user.timestamp || ''
+                    };
                 } else {
-                    const row = { 'שם': user.name, 'זמן עדכון': user.timestamp };
-                    row[mainColumn.title] = user.reportData;
+                    const row = {
+                        'שם': user.name,
+                        'זמן עדכון': user.timestamp || ''
+                    };
+                    row[mainColumn.title] = user.reportData || 'לא התקבל דיווח';
                     return row;
                 }
             });
 
-            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+            const ws = XLSX.utils.json_to_sheet(dataForSheet, {header: columns});
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Report");
             XLSX.writeFile(wb, `דוח_${currentFilter}_${currentDate}.xlsx`);
