@@ -110,25 +110,45 @@
 
 
         async function fetchAndDisplayReports(button) {
-            currentFilter = button.dataset.filter;
-            currentDate = document.getElementById('date-picker').value;
+    currentFilter = button.dataset.filter;
+    currentDate = document.getElementById('date-picker').value;
 
-            setLoading(button, true);
-            document.getElementById('report-title').innerText = `טוען דוח ${currentFilter}...`;
-            const tableBody = document.querySelector('#report-table tbody');
-            tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">טוען נתונים...</td></tr>';
-            
-            const response = await apiCall('getRawLogsForDate', { dateString: currentDate });
-            setLoading(button, false);
-
-            if (response.success) {
-                allLogsForDay = response.data;
-                displayReport();
-            } else {
-                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">${response.message || 'שגיאה בקבלת נתונים מהשרת.'}</td></tr>`;
-                document.getElementById('report-title').innerText = 'שגיאה';
-            }
+    setLoading(button, true);
+    document.getElementById('report-title').innerText = `טוען דוח ${currentFilter}...`;
+    const tableBody = document.querySelector('#report-table tbody');
+    tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">טוען נתונים...</td></tr>';
+    
+    // =======================================================
+    //  השינוי מתחיל כאן
+    // =======================================================
+    
+    // בקשת API לנתונים של היום שנבחר
+    const todayResponse = await apiCall('getRawLogsForDate', { dateString: currentDate });
+    
+    // אם מדובר בדוח שבת, נבקש גם את הנתונים של יום שישי
+    let yesterdayLogs = [];
+    if (currentFilter === 'שבת') {
+        const selectedDate = new Date(currentDate);
+        selectedDate.setDate(selectedDate.getDate() - 1); // מחשבים את התאריך של אתמול
+        const yesterdayDateString = selectedDate.toISOString().split('T')[0];
+        const yesterdayResponse = await apiCall('getRawLogsForDate', { dateString: yesterdayDateString });
+        if (yesterdayResponse.success) {
+            yesterdayLogs = yesterdayResponse.data;
         }
+    }
+
+    setLoading(button, false);
+
+    if (todayResponse.success) {
+        // מאחדים את הדיווחים של היום ושל אתמול (רלוונטי רק לדוח שבת)
+        // דיווחי היום יופיעו קודם, כך שהם יקבלו עדיפות
+        allLogsForDay = [...todayResponse.data, ...yesterdayLogs];
+        displayReport();
+    } else {
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center;">${todayResponse.message || 'שגיאה בקבלת נתונים מהשרת.'}</td></tr>`;
+        document.getElementById('report-title').innerText = 'שגיאה';
+    }
+}
 
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
