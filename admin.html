@@ -68,6 +68,7 @@
             populateUserList();
         });
 
+        // כל שאר מאזיני האירועים ופונקציות העזר נשארים זהים
         document.body.addEventListener('click', async (event) => {
             const action = event.target.dataset.action;
             if (action === 'fetch-reports') await fetchReports(event.target);
@@ -124,7 +125,7 @@
         }
         
         // =================================================================
-        //  פונקציית התצוגה החכמה והסופית
+        //  גרסת "כוח גס" של פונקציית התצוגה
         // =================================================================
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
@@ -145,9 +146,7 @@
             currentReportData.forEach(user => {
                 const tr = document.createElement('tr');
                 const userDidNotReport = !user.timestamp;
-                if (userDidNotReport) {
-                    tr.classList.add('not-reported');
-                }
+                if (userDidNotReport) tr.classList.add('not-reported');
 
                 const createCell = (text) => {
                     const td = document.createElement('td');
@@ -161,21 +160,18 @@
                 if (currentFilter === 'חירום') {
                     let locationText = '';
                     let statusText = '';
+                    const reportStr = user.reportData || '';
                     
                     if (userDidNotReport) {
                         locationText = 'לא התקבל דיווח';
+                    } else if (reportStr.includes('|') && reportStr.includes('מיקום:') && reportStr.includes('סטטוס:')) {
+                        // הגישה ה"טיפשה": מפרקים את המחרוזת בכל מקרה, בלי להניח כלום
+                        const parts = reportStr.split('|');
+                        locationText = parts[0].replace('מיקום:', '').trim();
+                        statusText = parts[1].replace('סטטוס:', '').trim();
                     } else {
-                        // לוגיקה חכמה: בודקת אם השרת כבר פירק את המידע. אם לא - מפרקת בעצמה.
-                        if (user.location) { // השרת הצליח לפרק
-                            locationText = user.location;
-                            statusText = user.status;
-                        } else if (user.reportData && user.reportData.includes('|')) { // השרת נכשל, נפרק כאן
-                            const parts = user.reportData.split('|');
-                            locationText = parts[0].replace('מיקום:', '').trim();
-                            statusText = parts[1].replace('סטטוס:', '').trim();
-                        } else { // דיווח חירום פשוט ללא סטטוס
-                            locationText = user.reportData;
-                        }
+                        // אם זה לא הפורמט המלא, נניח שהכל זה המיקום
+                        locationText = reportStr;
                     }
                     createCell(locationText);
                     createCell(statusText);
@@ -203,6 +199,7 @@
         }
         
         function exportToExcel() {
+            // הפונקציה נשארת כפי שהיא ותעבוד עם הלוגיקה החדשה
             if (!currentReportData || currentReportData.length === 0) return;
 
             const dataForSheet = currentReportData.map(user => {
@@ -210,33 +207,23 @@
                 if (currentFilter === 'חירום') {
                     let locationText = '';
                     let statusText = '';
+                    const reportStr = user.reportData || '';
                      if (userDidNotReport) {
                         locationText = 'לא התקבל דיווח';
-                    } else if (user.location) {
-                        locationText = user.location;
-                        statusText = user.status;
-                    } else if (user.reportData && user.reportData.includes('|')) {
-                        const parts = user.reportData.split('|');
+                    } else if (reportStr.includes('|')) {
+                        const parts = reportStr.split('|');
                         locationText = parts[0].replace('מיקום:', '').trim();
                         statusText = parts[1].replace('סטטוס:', '').trim();
                     } else {
-                        locationText = user.reportData;
+                        locationText = reportStr;
                     }
-                    return {
-                        'שם': user.name,
-                        'מיקום': locationText,
-                        'סטטוס': statusText,
-                        'זמן עדכון': user.timestamp || ''
-                    };
+                    return { 'שם': user.name, 'מיקום': locationText, 'סטטוס': statusText, 'זמן עדכון': user.timestamp || '' };
                 } else {
                      let mainColumnTitle = (currentFilter === 'שבת') ? 'מיקום' : 'סטטוס';
-                     return {
-                        'שם': user.name,
-                        [mainColumnTitle]: userDidNotReport ? 'לא התקבל דיווח' : user.reportData,
-                        'זמן עדכון': user.timestamp || ''
-                    };
+                     return { 'שם': user.name, [mainColumnTitle]: userDidNotReport ? 'לא התקבל דיווח' : user.reportData, 'זמן עדכון': user.timestamp || '' };
                 }
             });
+
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.json_to_sheet(dataForSheet);
             XLSX.utils.book_append_sheet(wb, ws, "Report");
