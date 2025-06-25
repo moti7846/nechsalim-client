@@ -124,7 +124,7 @@
         }
         
         // =================================================================
-        //  גרסה סופית ו"חסינת-טעויות" של פונקציית התצוגה
+        //  פונקציית התצוגה החכמה והסופית
         // =================================================================
         function displayReport() {
             const tableHead = document.querySelector('#report-table thead');
@@ -151,16 +151,11 @@
 
                 const createCell = (text) => {
                     const td = document.createElement('td');
-                    // בדיקה מפורשת כדי למנוע הצגה של 'null' או 'undefined'
-                    if (text === null || typeof text === 'undefined') {
-                        td.textContent = '';
-                    } else {
-                        td.textContent = text;
-                    }
+                    td.textContent = text ?? '';
                     tr.appendChild(td);
                 };
 
-                // הרכבת השורה - תא אחר תא
+                // --- בניית השורה ---
                 createCell(user.name);
 
                 if (currentFilter === 'חירום') {
@@ -170,19 +165,25 @@
                     if (userDidNotReport) {
                         locationText = 'לא התקבל דיווח';
                     } else {
-                        // בדיקה מפורשת: אם השרת פירק את המידע, נשתמש בו. אם לא, נשתמש במידע הגולמי.
-                        locationText = user.location || user.reportData;
-                        statusText = user.status;
+                        // לוגיקה חכמה: בודקת אם השרת כבר פירק את המידע. אם לא - מפרקת בעצמה.
+                        if (user.location) { // השרת הצליח לפרק
+                            locationText = user.location;
+                            statusText = user.status;
+                        } else if (user.reportData && user.reportData.includes('|')) { // השרת נכשל, נפרק כאן
+                            const parts = user.reportData.split('|');
+                            locationText = parts[0].replace('מיקום:', '').trim();
+                            statusText = parts[1].replace('סטטוס:', '').trim();
+                        } else { // דיווח חירום פשוט ללא סטטוס
+                            locationText = user.reportData;
+                        }
                     }
                     createCell(locationText);
                     createCell(statusText);
-                } else {
-                    // לוגיקה פשוטה לדוחות רגילים
+                } else { // דוחות שבת ונוכחות
                     createCell(userDidNotReport ? 'לא התקבל דיווח' : user.reportData);
                 }
                 
                 createCell(user.timestamp);
-
                 tableBody.appendChild(tr);
             });
 
@@ -197,21 +198,34 @@
                 response.data.forEach(name => {
                     const option = new Option(name, name);
                     userSelect.add(option);
-});
+                });
             }
         }
         
         function exportToExcel() {
             if (!currentReportData || currentReportData.length === 0) return;
+
             const dataForSheet = currentReportData.map(user => {
                 const userDidNotReport = !user.timestamp;
                 if (currentFilter === 'חירום') {
-                    const locationText = user.location || user.reportData;
-                    const statusText = user.status;
+                    let locationText = '';
+                    let statusText = '';
+                     if (userDidNotReport) {
+                        locationText = 'לא התקבל דיווח';
+                    } else if (user.location) {
+                        locationText = user.location;
+                        statusText = user.status;
+                    } else if (user.reportData && user.reportData.includes('|')) {
+                        const parts = user.reportData.split('|');
+                        locationText = parts[0].replace('מיקום:', '').trim();
+                        statusText = parts[1].replace('סטטוס:', '').trim();
+                    } else {
+                        locationText = user.reportData;
+                    }
                     return {
                         'שם': user.name,
-                        'מיקום': userDidNotReport ? 'לא התקבל דיווח' : locationText,
-                        'סטטוס': userDidNotReport ? '' : statusText,
+                        'מיקום': locationText,
+                        'סטטוס': statusText,
                         'זמן עדכון': user.timestamp || ''
                     };
                 } else {
