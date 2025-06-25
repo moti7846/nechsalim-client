@@ -57,7 +57,6 @@
             window.location.href = 'index.html';
         }
 
-        // --- משתנים גלובליים ---
         let allSystemUsers = [];
         let allLogsForDay = [];
         let currentFilter = '';
@@ -90,7 +89,6 @@
                 adminName: loggedInUser.name
             };
             if (!data.targetName || !data.reportData) return alert('יש למלא שם ונתון ראשי.');
-
             const button = form.querySelector('button[type="submit"]');
             setLoading(button, true);
             const response = await apiCall('adminUpdateUserStatus', data);
@@ -108,11 +106,6 @@
 
         document.getElementById('export-excel-btn').addEventListener('click', exportToExcel);
 
-
-        // ===============================================
-        //  פונקציות ליבה בארכיטקטורה החדשה
-        // ===============================================
-
         async function fetchAndDisplayReports(button) {
             currentFilter = button.dataset.filter;
             currentDate = document.getElementById('date-picker').value;
@@ -122,11 +115,9 @@
             const tableBody = document.querySelector('#report-table tbody');
             tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">טוען נתונים...</td></tr>';
             
-            // קריאה ל-getRawLogsForDate עבור היום שנבחר
             const todayResponse = await apiCall('getRawLogsForDate', { dateString: currentDate });
             
             let yesterdayLogs = [];
-            // אם זה דוח שבת, נבקש גם את הנתונים מיום שישי
             if (currentFilter === 'שבת') {
                 const selectedDate = new Date(currentDate);
                 selectedDate.setDate(selectedDate.getDate() - 1);
@@ -136,11 +127,9 @@
                     yesterdayLogs = yesterdayResponse.data;
                 }
             }
-
             setLoading(button, false);
 
             if (todayResponse.success) {
-                // איחוד הדיווחים: קודם של היום, ואז של אתמול
                 allLogsForDay = [...todayResponse.data, ...yesterdayLogs];
                 displayReport();
             } else {
@@ -159,12 +148,11 @@
             else columns = ['שם', 'סטטוס', 'זמן עדכון'];
             tableHead.innerHTML = '<tr>' + columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
             
-            // מציאת הדיווח העדכני ביותר לכל משתמש
             const latestReports = new Map();
-            for (let i = 0; i < allLogsForDay.length; i++) { // שינוי קל: רצים מההתחלה לסוף
+            for (let i = allLogsForDay.length - 1; i >= 0; i--) {
                 const log = allLogsForDay[i];
-                if (log.Status_Type === currentFilter) { // מוודאים שהדיווח מהסוג הנכון
-                    latestReports.set(log.Name, log); // דורסים דיווחים ישנים עם חדשים
+                if (log.Status_Type === currentFilter && !latestReports.has(log.Name)) {
+                    latestReports.set(log.Name, log);
                 }
             }
 
@@ -213,7 +201,36 @@
         }
 
         function exportToExcel() {
-            // הלוגיקה פה נשארת זהה לגרסה האחרונה שהייתה תקינה
+             if (allSystemUsers.length === 0) return;
+            const latestReports = new Map();
+             for (let i = allLogsForDay.length - 1; i >= 0; i--) {
+                const log = allLogsForDay[i];
+                if (log.Status_Type === currentFilter && !latestReports.has(log.Name)) {
+                    latestReports.set(log.Name, log);
+                }
+            }
+            const dataForSheet = allSystemUsers.map(userName => {
+                const report = latestReports.get(userName);
+                if (!report) {
+                    if (currentFilter === 'חירום') return { 'שם': userName, 'מיקום': 'לא התקבל דיווח', 'סטטוס': '', 'זמן עדכון': '' };
+                    else { const colTitle = (currentFilter === 'שבת') ? 'מיקום' : 'סטטוס'; return { 'שם': userName, [colTitle]: 'לא התקבל דיווח', 'זמן עדכון': '' }; }
+                } else {
+                    if (currentFilter === 'חירום') {
+                        const reportDataStr = report.Report_Data || '';
+                        const parts = reportDataStr.split('|');
+                        const location = parts[0] ? parts[0].replace('מיקום:', '').trim() : reportDataStr;
+                        const status = parts[1] ? parts[1].replace('סטטוס:', '').trim() : '';
+                        return { 'שם': userName, 'מיקום': location, 'סטטוס': status, 'זמן עדכון': new Date(report.Timestamp).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' }) };
+                    } else {
+                        const colTitle = (currentFilter === 'שבת') ? 'מיקום' : 'סטטוס';
+                        return { 'שם': userName, [colTitle]: report.Report_Data, 'זמן עדכון': new Date(report.Timestamp).toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' }) };
+                    }
+                }
+            });
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(dataForSheet);
+            XLSX.utils.book_append_sheet(wb, ws, "Report");
+            XLSX.writeFile(wb, `דוח_${currentFilter}_${currentDate}.xlsx`);
         }
     </script>
 </body>
