@@ -4,80 +4,43 @@
     <meta charset="UTF-8">
     <title>מערכת נכסלים - כניסה</title>
     <link rel="stylesheet" href="style.css">
-    <style>
-        .message {
-            margin-top: 10px;
-            color: red;
-            font-size: 14px;
-        }
-        .button-modern.loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-    </style>
 </head>
 <body>
     <div class="container">
         <h1>מערכת נכסלים</h1>
-        <div class="input-group">
-            <input type="email" id="emailInput" placeholder="אימייל" required>
-        </div>
-        <div class="input-group">
-            <input type="password" id="passwordInput" placeholder="סיסמה" required>
-        </div>
+        <div class="input-group"><input type="email" id="emailInput" placeholder="אימייל" required></div>
+        <div class="input-group"><input type="password" id="passwordInput" placeholder="סיסמה" required></div>
         <button class="button-modern btn-login" id="loginBtn">כניסה</button>
         <div id="message" class="message" style="display:none;"></div>
     </div>
-
     <script src="script.js"></script>
-    <script>
-        function showMessage(id, text, isError = false) {
-            const el = document.getElementById(id);
-            el.innerText = text;
-            el.style.display = "block";
-            el.style.color = isError ? "red" : "green";
+<script>
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const button = document.getElementById('loginBtn');
+        const credentials = {
+            email: document.getElementById('emailInput').value.trim(),
+            password: document.getElementById('passwordInput').value
+        };
+        if (!credentials.email || !credentials.password) {
+            showMessage('message', "יש למלא אימייל וסיסמה.", true);
+            return;
         }
 
-        function setLoading(button, isLoading) {
-            if (isLoading) {
-                button.classList.add("loading");
-                button.disabled = true;
-                button.innerText = "טוען...";
-            } else {
-                button.classList.remove("loading");
-                button.disabled = false;
-                button.innerText = "כניסה";
-            }
+        setLoading(button, true);
+        const response = await apiCall('verifyUser', credentials);
+        if (response.success) {
+            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
+            const page = response.user.role === 'Admin' ? 'admin.html' : 'user.html';
+            window.location.href = page;
+        } else {
+            showMessage('message', response.message, true);
+            setLoading(button, false);
         }
+    });
 
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            const button = document.getElementById('loginBtn');
-            const credentials = {
-                email: document.getElementById('emailInput').value.trim(),
-                password: document.getElementById('passwordInput').value
-            };
-
-            if (!credentials.email || !credentials.password) {
-                showMessage('message', "יש למלא אימייל וסיסמה.", true);
-                return;
-            }
-
-            setLoading(button, true);
-            const response = await apiCall('verifyUser', credentials);
-
-            if (response.success && response.token) {
-                localStorage.setItem("authToken", response.token);
-                localStorage.setItem("userName", response.name);
-                window.location.href = 'admin.html'; // בודק את התפקיד שם
-            } else {
-                showMessage('message', response.message || "שגיאה בהתחברות", true);
-                setLoading(button, false);
-            }
-        });
-
-        document.getElementById('passwordInput').addEventListener("keyup", event => {
-            if (event.key === "Enter") document.getElementById('loginBtn').click();
-        });
-    </script>
+    document.getElementById('passwordInput').addEventListener("keyup", event => {
+        if (event.key === "Enter") document.getElementById('loginBtn').click();
+    });
+</script>
 </body>
 </html>
