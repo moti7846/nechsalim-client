@@ -337,3 +337,83 @@ hr {
 
 .report-table tbody tr.not-reported:hover {
     background-color: #fecaca;
+}
+/* התאמות לניידים */
+@media (max-width: 768px) {
+    .layout-wrapper {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-around;
+        padding: 12px;
+        overflow-x: auto;
+    }
+
+    .sidebar-header {
+        display: none;
+    }
+
+    .sidebar-nav ul {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .sidebar-nav li {
+        margin-bottom: 0;
+    }
+
+    .sidebar-nav li a {
+        padding: 10px 12px;
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .main-content {
+        padding: 20px 16px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    input,
+    select,
+    button.button-modern {
+        font-size: 15px;
+        padding: 12px;
+    }
+
+    h4 {
+        font-size: 18px;
+        text-align: center;
+    }
+
+    .controls-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .top-bar,
+    .content-table {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .top-bar-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+}
