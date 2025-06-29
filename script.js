@@ -1,46 +1,37 @@
-// כתובת השרת שלך (localhost בזמן פיתוח או בשרת בענן לאחר העלאה)
 const SCRIPT_URL = "https://nechsalim-proxy.onrender.com/api";
 
-// פונקציה כללית לקריאות לשרת המתווך
-async function apiCall(action, data = {}, token = null) {
+// קריאה לשרת עם הטוקן
+async function apiCall(action, data = {}) {
+    const token = localStorage.getItem("authToken");
+    const response = await fetch(SCRIPT_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ action, data, token }) // שולחים גם בגוף וגם בכותרת
+    });
+
     try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            mode: 'cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action,
-                data,
-                token: token || localStorage.getItem("authToken")
-            })
-        });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
-    } catch (error) {
-        console.error("API Call failed:", error);
-        return { success: false, message: "שגיאת תקשורת עם השרת." };
+    } catch (e) {
+        return { success: false, message: "שגיאה בפענוח תשובת השרת." };
     }
 }
 
-// פונקציות עזר קיימות
-function setLoading(button, isLoading) {
-    if (button) {
-        button.disabled = isLoading;
-        button.classList.toggle('loading', isLoading);
-    }
-}
-
-function showMessage(divId, text, isError) {
-    const div = document.getElementById(divId);
-    if (div) {
-        div.textContent = text;
-        div.style.display = 'block';
-        div.className = 'message ' + (isError ? 'error' : 'success');
+async function login(email, password) {
+    const res = await apiCall("verifyUser", { email, password });
+    if (res.success) {
+        localStorage.setItem("authToken", res.token);
+        localStorage.setItem("userName", res.name);
+        window.location.href = "admin.html";
+    } else {
+        alert(res.message || "שגיאה בהתחברות");
     }
 }
 
 function logout() {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userName');
-    window.location.href = 'index.html';
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("userName");
+    window.location.href = "index.html";
 }
