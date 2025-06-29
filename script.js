@@ -1,48 +1,42 @@
+// כתובת השרת שלך (localhost בזמן פיתוח או בשרת בענן לאחר העלאה)
 const SCRIPT_URL = "https://nechsalim-proxy.onrender.com/api";
 
-// קריאה לשרת עם הטוקן
+
+// פונקציה כללית לקריאות לשרת המתווך
 async function apiCall(action, data = {}) {
-    const token = localStorage.getItem("authToken");
-
-    const response = await fetch(SCRIPT_URL, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": token ? `Bearer ${token}` : ""
-        },
-        body: JSON.stringify({ action, data, token })
-    });
-
     try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action, data }) // ללא apiKey
+        });
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
-    } catch (e) {
-        return { success: false, message: "שגיאה בפענוח תשובת השרת." };
+    } catch (error) {
+        console.error("API Call failed:", error);
+        return { success: false, message: "שגיאת תקשורת עם השרת." };
     }
 }
 
-// התחברות
-async function login(email, password) {
-    const res = await apiCall("verifyUser", { email, password });
-
-    if (res.success) {
-        localStorage.setItem("authToken", res.token);
-        localStorage.setItem("userName", res.name);
-        localStorage.setItem("userRole", res.role); // ⬅ שמירת התפקיד
-
-        if (res.role === "Admin") {
-            window.location.href = "admin.html";
-        } else {
-            window.location.href = "user.html";
-        }
-    } else {
-        alert(res.message || "שגיאה בהתחברות");
+// פונקציות עזר קיימות
+function setLoading(button, isLoading) {
+    if (button) {
+        button.disabled = isLoading;
+        button.classList.toggle('loading', isLoading);
     }
 }
 
-// יציאה מהמערכת
+function showMessage(divId, text, isError) {
+    const div = document.getElementById(divId);
+    if (div) {
+        div.textContent = text;
+        div.style.display = 'block';
+        div.className = 'message ' + (isError ? 'error' : 'success');
+    }
+}
+
 function logout() {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userRole"); // ⬅ ניקוי תפקיד
-    window.location.href = "index.html";
+    localStorage.removeItem('loggedInUser');
+    window.location.href = 'index.html';
 }
