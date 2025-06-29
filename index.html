@@ -14,33 +14,31 @@
         <div id="message" class="message" style="display:none;"></div>
     </div>
     <script src="script.js"></script>
-<script>
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-        const button = document.getElementById('loginBtn');
-        const credentials = {
-            email: document.getElementById('emailInput').value.trim(),
-            password: document.getElementById('passwordInput').value
-        };
-        if (!credentials.email || !credentials.password) {
-            showMessage('message', "יש למלא אימייל וסיסמה.", true);
-            return;
-        }
-
-        setLoading(button, true);
-        const response = await apiCall('verifyUser', credentials);
-        if (response.success) {
-            localStorage.setItem('loggedInUser', JSON.stringify(response.user));
-            const page = response.user.role === 'Admin' ? 'admin.html' : 'user.html';
-            window.location.href = page;
-        } else {
-            showMessage('message', response.message, true);
-            setLoading(button, false);
-        }
-    });
-
-    document.getElementById('passwordInput').addEventListener("keyup", event => {
-        if (event.key === "Enter") document.getElementById('loginBtn').click();
-    });
-</script>
+    <script>
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            const button = document.getElementById('loginBtn');
+            const credentials = {
+                email: document.getElementById('emailInput').value.trim(),
+                password: document.getElementById('passwordInput').value
+            };
+            if (!credentials.email || !credentials.password) {
+                showMessage('message', "יש למלא אימייל וסיסמה.", true);
+                return;
+            }
+            setLoading(button, true);
+            const response = await apiCall('verifyUser', credentials);
+            if (response.success && response.token) {
+                localStorage.setItem("authToken", response.token);
+                localStorage.setItem("userName", response.name);
+                window.location.href = 'admin.html'; // נבדוק ב-admin אם מותר לו
+            } else {
+                showMessage('message', response.message, true);
+                setLoading(button, false);
+            }
+        });
+        document.getElementById('passwordInput').addEventListener("keyup", event => {
+            if (event.key === "Enter") document.getElementById('loginBtn').click();
+        });
+    </script>
 </body>
 </html>
