@@ -51,15 +51,26 @@
 
     <script src="script.js"></script>
     <script>
+        // אימות משתמש מיד עם טעינת הדף
         (async () => {
-            const response = await apiCall('getCurrentUser');
-            if (!response.success || !response.user || response.user.role !== 'Admin') {
+            const token = localStorage.getItem("authToken");
+            if (!token) {
                 window.location.href = 'index.html';
-            } else {
-                document.getElementById('admin-welcome').textContent = 'שלום, ' + (response.user.name || 'מנהל');
-                document.getElementById('date-picker').value = new Date().toISOString().split('T')[0];
-                populateUserList();
+                return;
             }
+
+            const response = await apiCall('getCurrentUser');
+
+            if (!response.success || !response.user || response.user.role !== 'Admin') {
+                logout(); // כולל ניתוב חזרה
+                return;
+            }
+
+            // הצלחה – המשך הטעינה
+            document.getElementById('admin-welcome').textContent = 'שלום, ' + (response.user.name || 'מנהל');
+            document.getElementById('date-picker').value = new Date().toISOString().split('T')[0];
+            localStorage.setItem('userName', response.user.name); // שמירה לצורך עדכון ידני
+            populateUserList();
         })();
 
         document.body.addEventListener('click', async (event) => {
@@ -102,6 +113,7 @@
             const response = await apiCall('getAllUserNames');
             if (response.success) {
                 const userSelect = document.getElementById('user-select');
+                userSelect.innerHTML = '<option value="">בחר משתמש...</option>'; // ניקוי קודם
                 response.data.forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
