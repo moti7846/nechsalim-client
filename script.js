@@ -1,15 +1,18 @@
 // כתובת השרת שלך (localhost בזמן פיתוח או בשרת בענן לאחר העלאה)
 const SCRIPT_URL = "https://nechsalim-proxy.onrender.com/api";
 
-
 // פונקציה כללית לקריאות לשרת המתווך
-async function apiCall(action, data = {}) {
+async function apiCall(action, data = {}, token = null) {
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             mode: 'cors',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action, data }) // ללא apiKey
+            body: JSON.stringify({
+                action,
+                data,
+                token: token || localStorage.getItem("authToken")
+            })
         });
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return await response.json();
@@ -37,6 +40,7 @@ function showMessage(divId, text, isError) {
 }
 
 function logout() {
-    localStorage.removeItem('loggedInUser');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userName');
     window.location.href = 'index.html';
 }
